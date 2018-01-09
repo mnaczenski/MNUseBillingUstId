@@ -1,29 +1,36 @@
 <?php
-/**
- * @category  Shopware
- * @package   Shopware\Plugins\MNUseBillingUstId
- */
-class Shopware_Plugins_Frontend_MNUseBillingUstId_Bootstrap extends Shopware_Components_Plugin_Bootstrap
+namespace MNUseBillingUstId;
+
+use Shopware\Components\Plugin\Context\ActivateContext;
+use Shopware\Components\Plugin\Context\DeactivateContext;
+
+class MNUseBillingUstId extends \Shopware\Components\Plugin
 {
-    /**
-     * @return bool
-     */
-    public function install()
+
+    public function activate(ActivateContext $context)
     {
-        $this->subscribeEvent(
-            'Shopware_Modules_Admin_GetUserData_FilterResult',
-            'onFilterUserData'
-        );
-        return true;
+        $context->scheduleClearCache(ActivateContext::CACHE_LIST_DEFAULT);
     }
+
+    public function deactivate(DeactivateContext $context)
+    {
+        $context->scheduleClearCache(DeactivateContext::CACHE_LIST_DEFAULT);
+    }
+
+    public static function getSubscribedEvents()
+    {
+        return [
+            'Shopware_Modules_Admin_GetUserData_FilterResult' => 'onFilterUserData'
+        ];
+    }
+
     /**
-     * @param Enlight_Event_EventArgs $args
+     * @param \Enlight_Event_EventArgs $args
      * @return array
      */
     public function onFilterUserData($args)
     {
         $userData = $args->getReturn();
-
         /**
          * Wenn In der Lieferadresse keine Umsatzsteuer-ID hinterlegt ist
          * und  das Lieferland auf "Steuerfrei für Unternehmen steht"
@@ -31,14 +38,10 @@ class Shopware_Plugins_Frontend_MNUseBillingUstId_Bootstrap extends Shopware_Com
          * und  das Rechnungsland auf "Steuerfrei für Unternehmen steht"
          * dann ersetze die UmsatzsteuerID aus der Lieferadresse mit der aus der Rechnungsadresse
          */
-
-
-
         if (empty($userData['shippingaddress']['ustid']) && $userData['additional']['countryShipping']['taxfree_ustid'] == 1
             && !empty($userData['billingaddress']['ustid']) && $userData['additional']['country']['taxfree_ustid'] == 1) {
             $userData['shippingaddress']['ustid'] = $userData['billingaddress']['ustid'];
         }
-
         return $userData;
     }
 }
